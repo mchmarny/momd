@@ -1,12 +1,12 @@
 version: 2
 
-project_name: macos-menu
+project_name: momd
 
 builds:
-  - binary: macos-menu
+  - binary: momd
     # set the modified timestamp on the output binary to the git timestamp to ensure a reproducible build
     mod_timestamp: &build-timestamp '{{ .CommitTimestamp }}'
-    dir: .
+    dir: cmd/momd
     env:
       - CGO_ENABLED=0
       - GO111MODULE=on
@@ -16,9 +16,9 @@ builds:
       -w
       -s
       -extldflags "-static"
-      -X github.com/mchmarny/macos-menu/pkg/server.version={{.Version}}
-      -X github.com/mchmarny/macos-menu/pkg/server.commit={{.ShortCommit}}
-      -X github.com/mchmarny/macos-menu/pkg/server.date={{.Date}}
+      -X main.version={{.Version}}
+      -X main.commit={{.ShortCommit}}
+      -X main.date={{.Date}}
     goos:
       - darwin
     goarch:
@@ -46,26 +46,26 @@ metadata:
 release:
   github:
     owner: mchmarny
-    name: macos-menu
+    name: momd
   prerelease: auto
 
 brews:
-  - name: macos-menu
+  - name: momd
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     description: "Rank Kubernetes pods/containers by CPU/memory usage (usage ÷ limit)."
-    homepage: "https://github.com/mchmarny/macos-menu"
+    homepage: "https://github.com/mchmarny/momd"
     repository:
       owner: mchmarny
-      name: homebrew-macos-menu
+      name: homebrew-momd
       branch: main
       token: "{{ .Env.HOMEBREW_TOKEN }}"
     install: |
-      bin.install "macos-menu"
+      bin.install "momd"
     test: |
-      system "#{bin}/macos-menu --help"
+      system "#{bin}/momd --help"
 
 archives:
-  - id: macos-menu
+  - id: momd
     formats:
       - tar.gz
     name_template: "{{ .Binary }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"

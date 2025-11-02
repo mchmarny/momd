@@ -11,14 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mchmarny/macos-menu/pkg/logger"
-	"github.com/mchmarny/macos-menu/pkg/metric"
+	"github.com/mchmarny/momd/pkg/metric"
 	"golang.org/x/sync/errgroup"
 )
 
 const (
 	// DefaultPort is the default HTTP server port.
-	DefaultPort = 8080
+	DefaultPort = 9876
 
 	// DefaultReadTimeout is the maximum duration for reading the entire request,
 	// including the body. A zero or negative value means there will be no timeout.
@@ -42,14 +41,6 @@ const (
 	// read parsing the request header's keys and values, including the request line.
 	// 1 MB is a conservative default to prevent header-based DoS attacks.
 	DefaultMaxHeaderBytes = 1 << 20 // 1 MB
-
-	versionMetricLabel = "version"
-)
-
-var (
-	version = "dev"     // Set at build time via -ldflags "-X package.path.version=version"
-	commit  = "none"    // Set at build time via -ldflags "-X package.path.commit=commit"
-	date    = "unknown" // Set at build time via -ldflags "-X package.path.builtOn=date"
 )
 
 // Server defines the interface for an HTTP server that handles metrics and health checks.
@@ -119,7 +110,7 @@ type TLSConfig struct {
 type Option func(*server)
 
 // WithPort sets the port number for the HTTP server.
-// If not specified, DefaultPort (8080) is used.
+// If not specified, DefaultPort (9876) is used.
 func WithPort(port int) Option {
 	return func(s *server) { s.port = port }
 }
@@ -214,7 +205,7 @@ func WithTLS(cfg TLSConfig) Option {
 // If no options are provided, the server uses sensible defaults suitable for most services.
 //
 // Default configuration:
-//   - Port: 8080
+//   - Port: 9876
 //   - ReadTimeout: 10s
 //   - WriteTimeout: 10s
 //   - IdleTimeout: 60s
@@ -223,15 +214,12 @@ func WithTLS(cfg TLSConfig) Option {
 //
 // Example:
 //
-//	srv := server.NewServer(
-//	    server.WithPort(8080),
+//	srv := server.New(
+//	    server.WithPort(9876),
 //	    server.WithPrometheusMetrics(),
 //	    server.WithSimpleHealth(),
 //	)
 func New(opts ...Option) Server {
-	logger.SetDefaultStructuredLogger("labeler", version)
-	slog.Info("Starting labeler", "version", version, "commit", commit, "date", date)
-
 	s := &server{
 		port:            DefaultPort,
 		readTimeout:     DefaultReadTimeout,
@@ -243,12 +231,10 @@ func New(opts ...Option) Server {
 		startCounter: metric.NewCounter(
 			"server_starts_total",
 			"Total number of server starts",
-			versionMetricLabel,
 		),
 		errCounter: metric.NewCounter(
 			"server_errors_total",
 			"Total number of server errors",
-			versionMetricLabel,
 		),
 		errLog: log.Default(),
 	}
@@ -265,6 +251,19 @@ func New(opts ...Option) Server {
 	return s
 }
 
+// AddHandler registers an HTTP handler for the specified pattern.
+// This method is thread-safe and can be called concurrently from multiple goroutines.
+//
+// Example:
+//
+//	srv := server.NewServer(server.WithPort(9876))
+//	srv.AddHandler("/custom", customHandler)
+func (s *server) AddHandler(pattern string, handler http.Handler) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	s.mux.Handle(pattern, handler)
+}
+
 // IsRunning returns true if the server is currently running and accepting connections.
 // This method is thread-safe and can be called concurrently from multiple goroutines.
 //
@@ -274,7 +273,7 @@ func New(opts ...Option) Server {
 //
 // Example:
 //
-//	srv := server.NewServer(server.WithPort(8080))
+//	srv := server.NewServer(server.WithPort(9876))
 //	go srv.Serve(ctx)
 //	time.Sleep(100 * time.Millisecond) // Give server time to start
 //	if srv.IsRunning() {
@@ -387,7 +386,7 @@ func (s *server) Serve(ctx context.Context) error {
 
 		// Serve using the pre-created listener
 		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
-			s.errCounter.Increment(version)
+			s.errCounter.Increment()
 			return fmt.Errorf("server error: %w", err)
 		}
 
@@ -414,7 +413,7 @@ func (s *server) Serve(ctx context.Context) error {
 		return nil
 	})
 
-	s.startCounter.Increment(version)
+	s.startCounter.Increment()
 
 	return g.Wait()
 }

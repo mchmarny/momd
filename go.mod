@@ -1,4 +1,4 @@
-module github.com/mchmarny/macos-menu
+module github.com/mchmarny/momd
 
 go 1.25.3
 

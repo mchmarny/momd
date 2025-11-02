@@ -1,4 +1,4 @@
-APP_NAME           := macos-menu
+APP_NAME           := momd
 APP_VERSION 	   := v0.1.0
 YAML_FILES         := $(shell find . -type f \( -iname "*.yml" -o -iname "*.yaml" \))
 
@@ -18,7 +18,7 @@ all: help
 pre: tidy lint test vet ## Run all quality checks
 
 build: ## Build the Go binary locally
-	$(GO_ENV) go build -v -o bin/$(APP_NAME) main.go
+	$(GO_ENV) go build -v -o bin/$(APP_NAME) cmd/momd/main.go
 
 clean: ## Clean the build artifacts
 	$(GO_ENV) go clean -x; \
@@ -49,7 +49,7 @@ lint: ## Lint the Go code and YAML files
 	fi
 
 run: ## Run the application
-	$(GO_ENV) go run main.go
+	$(GO_ENV) go run cmd/momd/main.go
 
 test: ## Run Go tests and generate coverage report
 	$(GO_ENV) go test -count=1 -covermode=atomic -coverprofile=coverage.out ./... || exit 1; \
