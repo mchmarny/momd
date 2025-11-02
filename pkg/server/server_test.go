@@ -333,53 +333,6 @@ func TestCustomHandlers(t *testing.T) {
 	})
 }
 
-func TestPrometheusMetrics(t *testing.T) {
-	t.Run("prometheus metrics endpoint is registered", func(t *testing.T) {
-		port := getFreePort(t)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		srv := New(
-			WithPort(port),
-			WithPrometheusMetrics(),
-		)
-
-		g, gCtx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			return srv.Serve(gCtx)
-		})
-		defer cancel()
-
-		waitForServer(t, port)
-
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/metrics", port))
-		if err != nil {
-			t.Fatalf("failed to GET /metrics: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
-		}
-
-		// Verify it's actually Prometheus metrics format
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatalf("failed to read response body: %v", err)
-		}
-
-		bodyStr := string(body)
-		if len(bodyStr) == 0 {
-			t.Error("metrics endpoint returned empty body")
-		}
-
-		// Prometheus metrics should contain HELP or TYPE comments
-		if !containsAny(bodyStr, []string{"# HELP", "# TYPE", "go_"}) {
-			t.Error("response doesn't look like Prometheus metrics format")
-		}
-	})
-}
-
 func TestServerConcurrency(t *testing.T) {
 	t.Run("handles concurrent requests", func(t *testing.T) {
 		port := getFreePort(t)

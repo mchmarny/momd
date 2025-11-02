@@ -13,17 +13,11 @@ const (
 	name = "momd"
 )
 
-var (
-	version = "dev"     // Set at build time via -ldflags "-X main.version=version"
-	commit  = "none"    // Set at build time via -ldflags "-X main.commit=commit"
-	date    = "unknown" // Set at build time via -ldflags "-X main.date=date"
-)
-
 // Run starts the menu server and blocks until the context is canceled or an error occurs.
 // It automatically registers all menu item handlers and the root menu handler.
 func (m *Menu) Run(ctx context.Context, opt ...server.Option) error {
-	logger.SetDefaultLogger(name, version)
-	slog.Info("starting", "name", name, "commit", commit, "date", date)
+	logger.SetDefaultLogger(name, m.Version)
+	slog.Info("starting", "name", name)
 
 	if opt == nil {
 		opt = []server.Option{}

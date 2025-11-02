@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mchmarny/momd/pkg/metric"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
 )
@@ -85,20 +84,18 @@ type ReadinessChecker interface {
 // server is the internal implementation of the Server interface.
 // It uses the standard library http.Server with additional lifecycle management.
 type server struct {
-	mux             *http.ServeMux            // HTTP request multiplexer
-	port            int                       // Port to listen on
-	readTimeout     time.Duration             // Maximum duration for reading requests
-	writeTimeout    time.Duration             // Maximum duration for writing responses
-	idleTimeout     time.Duration             // Maximum idle time for keep-alive connections
-	shutdownTimeout time.Duration             // Grace period for shutdown
-	maxHeaderBytes  int                       // Maximum header size in bytes
-	errLog          *log.Logger               // Optional error logger
-	tlsConfig       *TLSConfig                // Optional TLS configuration
-	mu              sync.RWMutex              // Protects running state
-	running         bool                      // Indicates if server is currently running
-	registry        *prometheus.Registry      // Prometheus registry for metrics
-	startCounter    metric.IncrementalCounter // Counter for server starts
-	errCounter      metric.IncrementalCounter // Counter for server errors
+	mux             *http.ServeMux       // HTTP request multiplexer
+	port            int                  // Port to listen on
+	readTimeout     time.Duration        // Maximum duration for reading requests
+	writeTimeout    time.Duration        // Maximum duration for writing responses
+	idleTimeout     time.Duration        // Maximum idle time for keep-alive connections
+	shutdownTimeout time.Duration        // Grace period for shutdown
+	maxHeaderBytes  int                  // Maximum header size in bytes
+	errLog          *log.Logger          // Optional error logger
+	tlsConfig       *TLSConfig           // Optional TLS configuration
+	mu              sync.RWMutex         // Protects running state
+	running         bool                 // Indicates if server is currently running
+	registry        *prometheus.Registry // Prometheus registry for metrics
 }
 
 // TLSConfig contains the certificate and key file paths for TLS/HTTPS support.
@@ -162,18 +159,6 @@ func WithMaxHeaderBytes(n int) Option {
 func WithHandler(pattern string, handler http.Handler) Option {
 	return func(s *server) {
 		s.mux.Handle(pattern, handler)
-	}
-}
-
-// WithPrometheusMetrics adds a Prometheus metrics endpoint at /metrics.
-// The metrics are served from the server's custom registry.
-//
-// Example:
-//
-//	srv := NewServer(WithPrometheusMetrics())
-func WithPrometheusMetrics() Option {
-	return func(s *server) {
-		s.mux.Handle("/metrics", metric.GetHandlerForRegistry(s.registry))
 	}
 }
 
@@ -246,17 +231,7 @@ func New(opts ...Option) Server {
 		maxHeaderBytes:  DefaultMaxHeaderBytes,
 		mux:             http.NewServeMux(),
 		registry:        reg,
-		startCounter: metric.NewCounterWithRegistry(
-			reg,
-			"server_starts_total",
-			"Total number of server starts",
-		),
-		errCounter: metric.NewCounterWithRegistry(
-			reg,
-			"server_errors_total",
-			"Total number of server errors",
-		),
-		errLog: log.Default(),
+		errLog:          log.Default(),
 	}
 
 	for _, opt := range opts {
@@ -406,7 +381,6 @@ func (s *server) Serve(ctx context.Context) error {
 
 		// Serve using the pre-created listener
 		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
-			s.errCounter.Increment()
 			return fmt.Errorf("server error: %w", err)
 		}
 
@@ -432,8 +406,6 @@ func (s *server) Serve(ctx context.Context) error {
 
 		return nil
 	})
-
-	s.startCounter.Increment()
 
 	return g.Wait()
 }

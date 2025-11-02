@@ -17,8 +17,6 @@ builds:
       -s
       -extldflags "-static"
       -X main.version={{.Version}}
-      -X main.commit={{.ShortCommit}}
-      -X main.date={{.Date}}
     goos:
       - darwin
     goarch:

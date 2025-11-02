@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	version = "v0.0.0" // Set at build time via -ldflags "-X main.version=version"
+
 	port = flag.Int("port", server.DefaultPort, "Port to run the server on")
 )
 
@@ -26,9 +28,7 @@ func main() {
 	ctx := context.Background()
 
 	// Run the menu server
-	if err := m.Run(ctx,
-		server.WithPort(*port),
-	); err != nil {
+	if err := m.Run(ctx, server.WithPort(*port)); err != nil {
 		slog.Error("server error", "error", err)
 	}
 }
@@ -37,8 +37,9 @@ func main() {
 // The handles and paths are set up for each menu item and point to your own handles.
 func makeMenu() *menu.Menu {
 	return &menu.Menu{
-		Title:       "Root Menu",
+		Title:       fmt.Sprintf("Root Menu (v%s)", version),
 		Description: "This is the root menu",
+		Version:     version,
 		Items: []menu.Item{
 			{
 				Title:       "Item 1",

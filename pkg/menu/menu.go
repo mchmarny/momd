@@ -14,6 +14,9 @@ type Menu struct {
 	// Description of the menu
 	Description string `json:"description,omitempty"`
 
+	// Version of the menu
+	Version string `json:"version,omitempty"`
+
 	// Items is the list of menu items
 	Items []Item `json:"items,omitempty"`
 }
