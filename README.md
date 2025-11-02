@@ -56,6 +56,7 @@ func makeMenu() *menu.Menu {
                 Description: "Prints a greeting (hover text)",
                 Type:        menu.ItemTypeCallback,  // Calls server
                 OnClick:     "/hello",
+                Shortcut:    "cmd+h",               // ⌘H
                 Handler:     myHandler(),
             },
             {
@@ -63,6 +64,7 @@ func makeMenu() *menu.Menu {
                 Description: "Opens GitHub in browser",
                 Type:        menu.ItemTypeLink,      // Opens URL
                 OnClick:     "https://github.com",
+                Shortcut:    "cmd+g",                // ⌘G
             },
             {
                 Title:       "Submenu",
@@ -73,6 +75,7 @@ func makeMenu() *menu.Menu {
                         Description: "A nested callback",
                         Type:        menu.ItemTypeCallback,
                         OnClick:     "/submenu/nested",
+                        Shortcut:    "cmd+shift+n",  // ⌘⇧N
                         Handler:     myHandler(),
                     },
                 },
@@ -103,6 +106,10 @@ There are two types of menu items:
 - **`OnClick`**: 
   - For callbacks: server path like `"/action"`
   - For links: full URL like `"https://example.com"` or `"mailto:user@example.com"`
+- **`Shortcut`**: Keyboard shortcut (optional)
+  - Format: `"cmd+key"`, `"cmd+shift+key"`, etc.
+  - Modifiers: `cmd`, `ctrl`, `opt`/`option`/`alt`, `shift`
+  - Examples: `"cmd+1"`, `"cmd+shift+g"`, `"ctrl+opt+d"`
 - **`Handler`**: HTTP handler function (only for callback types)
 - **`Items`**: Nested submenu items (optional)
 

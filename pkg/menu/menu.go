@@ -52,6 +52,9 @@ type Item struct {
 	// Description is an optional description of the menu item.
 	Description string `json:"description,omitempty"`
 
+	// Shortcut is an optional keyboard shortcut for the menu item.
+	Shortcut string `json:"shortcut,omitempty"`
+
 	// Items are the sub-items of this menu item.
 	Items []Item `json:"items,omitempty"`
 }

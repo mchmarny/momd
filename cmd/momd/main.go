@@ -46,6 +46,7 @@ func makeMenu() *menu.Menu {
 				Description: "Calls back to the server",
 				Type:        menu.ItemTypeCallback,
 				OnClick:     "/item1",
+				Shortcut:    "cmd+1",
 				Handler:     simple(),
 			},
 			{
@@ -53,6 +54,7 @@ func makeMenu() *menu.Menu {
 				Description: "Open GitHub in browser",
 				Type:        menu.ItemTypeLink,
 				OnClick:     "https://github.com",
+				Shortcut:    "cmd+g",
 			},
 			{
 				Title:       "Item 2 (submenu)",
@@ -63,6 +65,7 @@ func makeMenu() *menu.Menu {
 						Description: "This is subitem 1",
 						Type:        menu.ItemTypeCallback,
 						OnClick:     "/item2/subitem1",
+						Shortcut:    "cmd+shift+1",
 						Handler:     simple(),
 					},
 					{
@@ -70,6 +73,7 @@ func makeMenu() *menu.Menu {
 						Description: "This is subitem 2",
 						Type:        menu.ItemTypeCallback,
 						OnClick:     "/item2/subitem2",
+						Shortcut:    "cmd+shift+2",
 						Handler:     simple(),
 					},
 				},

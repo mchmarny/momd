@@ -191,9 +191,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             menuItem.target = self
             menuItem.action = #selector(handleMenuItemAction(_:))
             menuItem.representedObject = MenuItemAction(type: item.type, onClick: onClick)
+            
+            // Parse and set keyboard shortcut AFTER action is set
+            if let shortcut = item.shortcut, !shortcut.isEmpty {
+                let (key, modifiers) = parseShortcut(shortcut)
+                if !key.isEmpty {
+                    menuItem.keyEquivalent = key
+                    menuItem.keyEquivalentModifierMask = modifiers
+                }
+            }
         }
         
         menu.addItem(menuItem)
+    }
+    
+    private func parseShortcut(_ shortcut: String) -> (String, NSEvent.ModifierFlags) {
+        var modifiers: NSEvent.ModifierFlags = []
+        var key = ""
+        
+        // Split by '+' and process each part
+        let parts = shortcut.lowercased().split(separator: "+").map { String($0).trimmingCharacters(in: .whitespaces) }
+        
+        for part in parts {
+            switch part {
+            case "cmd", "command":
+                modifiers.insert(.command)
+            case "ctrl", "control":
+                modifiers.insert(.control)
+            case "opt", "option", "alt":
+                modifiers.insert(.option)
+            case "shift":
+                modifiers.insert(.shift)
+            default:
+                // This is the key itself
+                key = part
+            }
+        }
+        
+        return (key, modifiers)
     }
     
     @objc private func handleMenuItemAction(_ sender: NSMenuItem) {
@@ -273,6 +308,7 @@ struct MenuItem: Codable {
     let onClick: String?
     let title: String
     let description: String?
+    let shortcut: String?
     let items: [MenuItem]?
 }
 
