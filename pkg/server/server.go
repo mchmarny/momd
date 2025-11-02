@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mchmarny/momd/pkg/metric"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -95,6 +96,7 @@ type server struct {
 	tlsConfig       *TLSConfig                // Optional TLS configuration
 	mu              sync.RWMutex              // Protects running state
 	running         bool                      // Indicates if server is currently running
+	registry        *prometheus.Registry      // Prometheus registry for metrics
 	startCounter    metric.IncrementalCounter // Counter for server starts
 	errCounter      metric.IncrementalCounter // Counter for server errors
 }
@@ -163,6 +165,18 @@ func WithHandler(pattern string, handler http.Handler) Option {
 	}
 }
 
+// WithPrometheusMetrics adds a Prometheus metrics endpoint at /metrics.
+// The metrics are served from the server's custom registry.
+//
+// Example:
+//
+//	srv := NewServer(WithPrometheusMetrics())
+func WithPrometheusMetrics() Option {
+	return func(s *server) {
+		s.mux.Handle("/metrics", metric.GetHandlerForRegistry(s.registry))
+	}
+}
+
 // WithSimpleHealth adds a simple health check endpoint at /healthz that always returns 200 OK.
 // This is suitable for stateless services or services that don't need complex health checks.
 // For services that need to verify dependencies, use WithHealthCheck instead.
@@ -220,6 +234,9 @@ func WithTLS(cfg TLSConfig) Option {
 //	    server.WithSimpleHealth(),
 //	)
 func New(opts ...Option) Server {
+	// Create a new registry for this server instance to avoid conflicts in tests
+	reg := prometheus.NewRegistry()
+
 	s := &server{
 		port:            DefaultPort,
 		readTimeout:     DefaultReadTimeout,
@@ -228,11 +245,14 @@ func New(opts ...Option) Server {
 		shutdownTimeout: DefaultShutdownTimeout,
 		maxHeaderBytes:  DefaultMaxHeaderBytes,
 		mux:             http.NewServeMux(),
-		startCounter: metric.NewCounter(
+		registry:        reg,
+		startCounter: metric.NewCounterWithRegistry(
+			reg,
 			"server_starts_total",
 			"Total number of server starts",
 		),
-		errCounter: metric.NewCounter(
+		errCounter: metric.NewCounterWithRegistry(
+			reg,
 			"server_errors_total",
 			"Total number of server errors",
 		),

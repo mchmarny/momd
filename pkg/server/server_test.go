@@ -341,6 +341,7 @@ func TestPrometheusMetrics(t *testing.T) {
 
 		srv := New(
 			WithPort(port),
+			WithPrometheusMetrics(),
 		)
 
 		g, gCtx := errgroup.WithContext(ctx)

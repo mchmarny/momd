@@ -23,12 +23,16 @@ func (c *Counter) Increment(val ...string) {
 }
 
 func NewCounter(name, help string, labels ...string) IncrementalCounter {
+	return NewCounterWithRegistry(prometheus.DefaultRegisterer, name, help, labels...)
+}
+
+func NewCounterWithRegistry(reg prometheus.Registerer, name, help string, labels ...string) IncrementalCounter {
 	counter := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: name,
 		Help: help,
 	}, labels)
 
-	prometheus.MustRegister(counter)
+	reg.MustRegister(counter)
 
 	return &Counter{
 		Name: name,
@@ -40,4 +44,9 @@ func NewCounter(name, help string, labels ...string) IncrementalCounter {
 // GetHandler returns an HTTP handler for serving Prometheus metrics.
 func GetHandler() http.Handler {
 	return promhttp.Handler()
+}
+
+// GetHandlerForRegistry returns an HTTP handler for serving Prometheus metrics from a custom registry.
+func GetHandlerForRegistry(reg prometheus.Gatherer) http.Handler {
+	return promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 }
