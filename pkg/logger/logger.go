@@ -12,62 +12,26 @@ const (
 	EnvVarLogLevel = "LOG_LEVEL"
 )
 
-// NewStructuredLogger creates a new structured logger with the specified log level
-// Defined module name and version are included in the logger's context.
-// AddSource is enabled for debug level logging only.
-// Parameters:
-//   - module: The name of the module/application using the logger.
-//   - version: The version of the module/application (e.g., "v1.0.0").
-//   - level: The log level as a string (e.g., "debug", "info", "warn", "error").
-//
-// Returns:
-//   - *slog.Logger: A pointer to the configured slog.Logger instance.
-func NewStructuredLogger(module, version, level string) *slog.Logger {
-	lev := ParseLogLevel(level)
-	addSource := lev <= slog.LevelDebug
-
-	return slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
-		Level:     lev,
-		AddSource: addSource,
-	})).With("module", module, "version", version)
-}
-
-// NewLogLogger creates a new standard library log.Logger that writes logs
-// using the slog package with the specified log level.
-// Parameters:
-//   - level: The log level as a slog.Level.
-//
-// Returns:
-//   - *log.Logger: A pointer to the configured log.Logger instance.
-func NewLogLogger(level slog.Level, withSource bool) *log.Logger {
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level:     level,
-		AddSource: withSource,
+// New creates a new structured logger instance and sets it as the default slog logger.
+// The logger is configured based on the log level specified in the environment variable LOG_LEVEL.
+// If the environment variable is not set or contains an unrecognized value, the default log level is Info.
+func New(name, version string) *log.Logger {
+	levelType := ParseLogLevel(os.Getenv(EnvVarLogLevel))
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     levelType,
+		AddSource: true,
 	})
 
-	return slog.NewLogLogger(handler, level)
-}
+	// Add module and version as attributes
+	handlerWithAttrs := handler.WithAttrs([]slog.Attr{
+		slog.String("name", name),
+		slog.String("version", version),
+	})
 
-// SetDefaultLogger initializes the structured logger with the
-// appropriate log level and sets it as the default logger.
-// Defined module name and version are included in the logger's context.
-// Parameters:
-//   - module: The name of the module/application using the logger.
-//   - version: The version of the module/application (e.g., "v1.0.0").
-//
-// Derives log level from the LOG_LEVEL environment variable.
-func SetDefaultLogger(module, version string) {
-	SetDefaultLoggerWithLevel(module, version, os.Getenv(EnvVarLogLevel))
-}
+	// Set as the default slog logger so all slog.Info/Error calls use this handler
+	slog.SetDefault(slog.New(handlerWithAttrs))
 
-// SetDefaultLoggerWithLevel initializes the structured logger with the specified log level
-// Defined module name and version are included in the logger's context.
-// Parameters:
-//   - module: The name of the module/application using the logger.
-//   - version: The version of the module/application (e.g., "v1.0.0").
-//   - level: The log level as a string (e.g., "debug", "info", "warn", "error").
-func SetDefaultLoggerWithLevel(module, version, level string) {
-	slog.SetDefault(NewStructuredLogger(module, version, level))
+	return slog.NewLogLogger(handlerWithAttrs, levelType)
 }
 
 // ParseLogLevel converts a string representation of a log level into a slog.Level.

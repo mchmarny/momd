@@ -1,5 +1,6 @@
 import Cocoa
 import Foundation
+import os.log
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
@@ -7,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var serverProcess: Process?
     private let serverPort: Int = 9876
     private let serverPath: String
+    private let logger = OSLog(subsystem: "com.mchmarny.momd", category: "app")
     
     override init() {
         // Determine the path to the momd binary
@@ -19,7 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.serverPath = "./momd"
         }
         super.init()
-        print("Server path: \(serverPath)")
+        os_log("Server path: %{public}@", log: logger, type: .info, serverPath)
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -62,32 +64,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         serverProcess?.executableURL = URL(fileURLWithPath: serverPath)
         serverProcess?.arguments = ["-port", "\(serverPort)"]
         
-        // Capture server output and forward to our logs
+        // Capture server output and forward to unified logging
         let outputPipe = Pipe()
         let errorPipe = Pipe()
         serverProcess?.standardOutput = outputPipe
         serverProcess?.standardError = errorPipe
         
-        // Read and log server output
-        outputPipe.fileHandleForReading.readabilityHandler = { handle in
+        // Read and log server stdout (Go server logs here)
+        outputPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            guard let self = self else { return }
             let data = handle.availableData
             if !data.isEmpty, let output = String(data: data, encoding: .utf8) {
-                print("[Server] \(output.trimmingCharacters(in: .whitespacesAndNewlines))")
+                let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                os_log("[Server] %{public}@", log: self.logger, type: .info, trimmed)
             }
         }
         
-        errorPipe.fileHandleForReading.readabilityHandler = { handle in
+        // Read and log server stderr (Go server errors here)
+        errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            guard let self = self else { return }
             let data = handle.availableData
             if !data.isEmpty, let output = String(data: data, encoding: .utf8) {
-                print("[Server Error] \(output.trimmingCharacters(in: .whitespacesAndNewlines))")
+                let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                os_log("[Server Error] %{public}@", log: self.logger, type: .error, trimmed)
             }
         }
         
         do {
             try serverProcess?.run()
-            print("Server started on port \(serverPort)")
+            os_log("Server started on port %d", log: logger, type: .info, serverPort)
         } catch {
-            print("Failed to start server: \(error)")
+            os_log("Failed to start server: %{public}@", log: logger, type: .error, error.localizedDescription)
             showError("Failed to start server: \(error.localizedDescription)\nPath: \(serverPath)")
         }
     }
@@ -95,7 +102,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func stopServer() {
         serverProcess?.terminate()
         serverProcess = nil
-        print("Server stopped")
+        os_log("Server stopped", log: logger, type: .info)
     }
     
     private func fetchAndBuildMenu() {
@@ -136,7 +143,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func buildMenu(from menuData: MenuData) {
-        print("Building menu from data...")
+        os_log("Building menu from data...", log: logger, type: .info)
         menu = NSMenu()
         
         // Add menu title if available
@@ -145,13 +152,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             titleItem.isEnabled = false
             menu.addItem(titleItem)
             menu.addItem(NSMenuItem.separator())
-            print("Added title: \(title)")
+            os_log("Added title: %{public}@", log: logger, type: .debug, title)
         }
         
         // Add menu items
         for item in menuData.items {
             addMenuItem(item, to: menu)
-            print("Added menu item: \(item.title)")
+            os_log("Added menu item: %{public}@", log: logger, type: .debug, item.title)
         }
         
         // Add separator and quit option
@@ -161,8 +168,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
         
         statusItem.menu = menu
-        print("Menu built successfully with \(menuData.items.count) items")
-        print("Status item menu set: \(statusItem.menu != nil)")
+        os_log("Menu built successfully with %d items", log: logger, type: .info, menuData.items.count)
     }
     
     private func addMenuItem(_ item: MenuItem, to menu: NSMenu) {
@@ -180,40 +186,62 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 addMenuItem(child, to: submenu)
             }
             menuItem.submenu = submenu
-        } else if let path = item.path {
-            // If item has a path (handler), make it actionable
+        } else if let onClick = item.onClick {
+            // If item has an onClick action, make it actionable
             menuItem.target = self
             menuItem.action = #selector(handleMenuItemAction(_:))
-            menuItem.representedObject = path
+            menuItem.representedObject = MenuItemAction(type: item.type, onClick: onClick)
         }
         
         menu.addItem(menuItem)
     }
     
     @objc private func handleMenuItemAction(_ sender: NSMenuItem) {
-        guard let path = sender.representedObject as? String else { return }
+        guard let action = sender.representedObject as? MenuItemAction else { return }
         
+        switch action.type {
+        case "callback":
+            handleCallback(path: action.onClick)
+        case "link":
+            handleLink(path: action.onClick)
+        default:
+            showError("Unknown menu item type: \(action.type)")
+        }
+    }
+    
+    private func handleCallback(path: String) {
         guard let url = URL(string: "http://localhost:\(serverPort)\(path)") else {
             showError("Invalid URL for path: \(path)")
             return
         }
         
-        print("Invoking menu item action: \(path)")
+        os_log("Invoking callback: %{public}@", log: logger, type: .info, path)
         
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let self = self else { return }
             if let error = error {
+                os_log("Failed to invoke callback: %{public}@", log: self.logger, type: .error, error.localizedDescription)
                 DispatchQueue.main.async {
-                    self.showError("Failed to invoke action: \(error.localizedDescription)")
+                    self.showError("Failed to invoke callback: \(error.localizedDescription)")
                 }
                 return
             }
             
             if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                print("Response from \(path): \(responseString)")
-                // Optionally show a notification or update UI
+                os_log("Response from %{public}@: %{public}@", log: self.logger, type: .debug, path, responseString)
             }
         }
         task.resume()
+    }
+    
+    private func handleLink(path: String) {
+        guard let url = URL(string: path) else {
+            showError("Invalid link: \(path)")
+            return
+        }
+        
+        os_log("Opening link: %{public}@", log: logger, type: .info, path)
+        NSWorkspace.shared.open(url)
     }
     
     @objc private func quit() {
@@ -242,7 +270,7 @@ struct MenuData: Codable {
 
 struct MenuItem: Codable {
     let type: String
-    let path: String?
+    let onClick: String?
     let title: String
     let description: String?
     let items: [MenuItem]?
@@ -250,5 +278,5 @@ struct MenuItem: Codable {
 
 struct MenuItemAction {
     let type: String
-    let path: String
+    let onClick: String
 }

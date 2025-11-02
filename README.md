@@ -53,20 +53,27 @@ func makeMenu() *menu.Menu {
         Items: []menu.Item{
             {
                 Title:       "Say Hello",
-                Description: "Prints a greeting",
-                Path:        "/hello",
+                Description: "Prints a greeting (hover text)",
+                Type:        menu.ItemTypeCallback,  // Calls server
+                OnClick:     "/hello",
                 Handler:     myHandler(),
+            },
+            {
+                Title:       "Open GitHub",
+                Description: "Opens GitHub in browser",
+                Type:        menu.ItemTypeLink,      // Opens URL
+                OnClick:     "https://github.com",
             },
             {
                 Title:       "Submenu",
                 Description: "A submenu example",
-                Path:        "/submenu",
-                Handler:     myHandler(),
                 Items: []menu.Item{
                     {
-                        Title:   "Nested Item",
-                        Path:    "/submenu/nested",
-                        Handler: myHandler(),
+                        Title:       "Nested Item",
+                        Description: "A nested callback",
+                        Type:        menu.ItemTypeCallback,
+                        OnClick:     "/submenu/nested",
+                        Handler:     myHandler(),
                     },
                 },
             },
@@ -74,6 +81,30 @@ func makeMenu() *menu.Menu {
     }
 }
 ```
+
+### Menu Item Types
+
+There are two types of menu items:
+
+- **`menu.ItemTypeCallback`**: Calls back to the Go server when clicked
+  - Requires a `Handler` and `OnClick` path (e.g., `"/hello"`)
+  - Server handles the request and returns a response
+  
+- **`menu.ItemTypeLink`**: Opens a URL using the system default handler
+  - Requires only `OnClick` with a full URL (e.g., `"https://github.com"`)
+  - Opens in default browser, mail client, etc. depending on URL scheme
+  - No server-side handler needed
+
+### Menu Item Fields
+
+- **`Title`**: The text displayed in the menu (required)
+- **`Description`**: Tooltip text shown on hover (optional)
+- **`Type`**: Either `menu.ItemTypeCallback` or `menu.ItemTypeLink`
+- **`OnClick`**: 
+  - For callbacks: server path like `"/action"`
+  - For links: full URL like `"https://example.com"` or `"mailto:user@example.com"`
+- **`Handler`**: HTTP handler function (only for callback types)
+- **`Items`**: Nested submenu items (optional)
 
 ## Available Make Targets
 
@@ -124,30 +155,52 @@ This will check:
 
 **Option 1: Console.app** (Best for troubleshooting)
 ```bash
-# Open Console app and search for "momd"
+# Open Console app
 open -a Console
+# Search for "momd" to see all logs
 ```
 
 **Option 2: Terminal log streaming** (Real-time logs)
 ```bash
-# Stream live logs
-log stream --predicate 'process == "momd"' --level info
+# Stream live logs from both Swift app and Go server
+log stream --predicate 'subsystem == "com.mchmarny.momd"' --level info
 
 # View recent logs (last 5 minutes)
-log show --predicate 'process == "momd"' --last 5m --info
+log show --predicate 'subsystem == "com.mchmarny.momd"' --last 5m --info
+
+# View with debug details
+log stream --predicate 'subsystem == "com.mchmarny.momd"' --level debug
 ```
 
-**Option 3: Run directly** (See all logs including Go server)
+**Option 3: Run from Terminal** (Development mode)
 ```bash
-# Run app from terminal to see debug output
+# Run app from terminal to see output directly
 ./macos/build/momd.app/Contents/MacOS/momd
 ```
 
-This shows both Swift app and Go server logs:
-- Swift: Server startup, menu building progress, menu item actions
-- Go: Structured JSON logs with server info, HTTP requests, errors (prefixed with `[Server]` or `[Server Error]`)
+**Option 4: Run Go server directly** (Server development only)
+```bash
+# Run just the Go server for testing handlers
+make server
+# or
+./bin/momd -port 9876
+```
 
-**Note**: Go server uses `slog` which writes to stderr by default - this is normal logging behavior, not errors.
+**What You'll See:**
+- Swift app logs: Server startup, menu building, user actions
+- Go server logs: HTTP requests, handler execution (prefixed with `[Server]`)
+
+**Log Format:**
+```
+2025-11-02 06:15:07.609652 Info momd: [com.mchmarny.momd:app] Invoking callback: /item1
+2025-11-02 06:15:07.620297 Info momd: [com.mchmarny.momd:app] [Server] 2025/11/02 06:15:07 INFO handling method=GET url=/item1
+```
+
+**Note**: 
+- The Swift app uses `os_log` (unified logging system) for all logs
+- Go server output (stdout) is captured via pipes and forwarded to `os_log` with `[Server]` prefix
+- Go server errors (stderr) are captured and logged with `[Server Error]` prefix
+- All logs appear together in Console.app and `log stream` with proper timestamps
 
 ### Manual testing
 

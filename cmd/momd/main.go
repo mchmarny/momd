@@ -42,31 +42,34 @@ func makeMenu() *menu.Menu {
 		Version:     version,
 		Items: []menu.Item{
 			{
-				Title:       "Item 1 (callback)",
-				Description: "This is item 1",
+				Title:       "Button (callback)",
+				Description: "Calls back to the server",
 				Type:        menu.ItemTypeCallback,
-				Path:        "/item1",
+				OnClick:     "/item1",
 				Handler:     simple(),
 			},
 			{
-				Title:       "Item 2 (link)",
-				Description: "This is item 2",
+				Title:       "GitHub",
+				Description: "Open GitHub in browser",
 				Type:        menu.ItemTypeLink,
-				Path:        "/item2",
-				Handler:     simple(),
+				OnClick:     "https://github.com",
+			},
+			{
+				Title:       "Item 2 (submenu)",
+				Description: "This item has subitems",
 				Items: []menu.Item{
 					{
 						Title:       "Subitem 1",
 						Description: "This is subitem 1",
 						Type:        menu.ItemTypeCallback,
-						Path:        "/item2/subitem1",
+						OnClick:     "/item2/subitem1",
 						Handler:     simple(),
 					},
 					{
 						Title:       "Subitem 2",
 						Description: "This is subitem 2",
 						Type:        menu.ItemTypeCallback,
-						Path:        "/item2/subitem2",
+						OnClick:     "/item2/subitem2",
 						Handler:     simple(),
 					},
 				},

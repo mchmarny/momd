@@ -37,8 +37,10 @@ type Item struct {
 	// Type indicates the type of the menu item (e.g., callback, link).
 	Type ItemType `json:"type"`
 
-	// Path is the unique identifier for the menu item within the scope of its parent.
-	Path string `json:"path"`
+	// OnClick is the action to perform when the menu item is clicked.
+	// For callback type: server path (e.g., "/item1")
+	// For link type: URL to open (e.g., "https://github.com")
+	OnClick string `json:"onClick"`
 
 	// Handler is the HTTP handler associated with this menu item.
 	// This field is not serialized to JSON.
@@ -71,7 +73,7 @@ func (m *Menu) RegisterHandlers(register func(pattern string, handler http.Handl
 // registerItem recursively registers a menu item and all its sub-items.
 func (m *Menu) registerItem(item *Item, register func(pattern string, handler http.Handler)) {
 	if item.Handler != nil {
-		register(item.Path, item.Handler)
+		register(item.OnClick, item.Handler)
 	}
 
 	for i := range item.Items {

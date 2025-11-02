@@ -16,8 +16,8 @@ const (
 // Run starts the menu server and blocks until the context is canceled or an error occurs.
 // It automatically registers all menu item handlers and the root menu handler.
 func (m *Menu) Run(ctx context.Context, opt ...server.Option) error {
-	logger.SetDefaultLogger(name, m.Version)
-	slog.Info("starting", "name", name)
+	logger.New(name, m.Version)
+	slog.Info("starting menu runner")
 
 	if opt == nil {
 		opt = []server.Option{}
