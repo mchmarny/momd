@@ -196,7 +196,7 @@ func TestSetDefaultStructuredLogger(t *testing.T) {
 			defer os.Unsetenv(EnvVarLogLevel)
 
 			// Set the default logger
-			SetDefaultStructuredLogger(tt.module, tt.version)
+			SetDefaultLogger(tt.module, tt.version)
 
 			// Verify we can use the default logger
 			defaultLogger := slog.Default()
@@ -244,7 +244,7 @@ func TestSetDefaultStructuredLoggerWithLevel(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the default logger with explicit level
-			SetDefaultStructuredLoggerWithLevel(tt.module, tt.version, tt.level)
+			SetDefaultLoggerWithLevel(tt.module, tt.version, tt.level)
 
 			// Verify we can use the default logger
 			defaultLogger := slog.Default()

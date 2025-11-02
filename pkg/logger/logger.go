@@ -40,7 +40,7 @@ func NewStructuredLogger(module, version, level string) *slog.Logger {
 // Returns:
 //   - *log.Logger: A pointer to the configured log.Logger instance.
 func NewLogLogger(level slog.Level, withSource bool) *log.Logger {
-	handler := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level:     level,
 		AddSource: withSource,
 	})
@@ -48,7 +48,7 @@ func NewLogLogger(level slog.Level, withSource bool) *log.Logger {
 	return slog.NewLogLogger(handler, level)
 }
 
-// SetDefaultStructuredLogger initializes the structured logger with the
+// SetDefaultLogger initializes the structured logger with the
 // appropriate log level and sets it as the default logger.
 // Defined module name and version are included in the logger's context.
 // Parameters:
@@ -56,17 +56,17 @@ func NewLogLogger(level slog.Level, withSource bool) *log.Logger {
 //   - version: The version of the module/application (e.g., "v1.0.0").
 //
 // Derives log level from the LOG_LEVEL environment variable.
-func SetDefaultStructuredLogger(module, version string) {
-	SetDefaultStructuredLoggerWithLevel(module, version, os.Getenv(EnvVarLogLevel))
+func SetDefaultLogger(module, version string) {
+	SetDefaultLoggerWithLevel(module, version, os.Getenv(EnvVarLogLevel))
 }
 
-// SetDefaultStructuredLoggerWithLevel initializes the structured logger with the specified log level
+// SetDefaultLoggerWithLevel initializes the structured logger with the specified log level
 // Defined module name and version are included in the logger's context.
 // Parameters:
 //   - module: The name of the module/application using the logger.
 //   - version: The version of the module/application (e.g., "v1.0.0").
 //   - level: The log level as a string (e.g., "debug", "info", "warn", "error").
-func SetDefaultStructuredLoggerWithLevel(module, version, level string) {
+func SetDefaultLoggerWithLevel(module, version, level string) {
 	slog.SetDefault(NewStructuredLogger(module, version, level))
 }
 

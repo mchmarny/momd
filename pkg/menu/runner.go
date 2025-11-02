@@ -9,6 +9,10 @@ import (
 	"github.com/mchmarny/momd/pkg/server"
 )
 
+const (
+	name = "momd"
+)
+
 var (
 	version = "dev"     // Set at build time via -ldflags "-X main.version=version"
 	commit  = "none"    // Set at build time via -ldflags "-X main.commit=commit"
@@ -18,8 +22,8 @@ var (
 // Run starts the menu server and blocks until the context is canceled or an error occurs.
 // It automatically registers all menu item handlers and the root menu handler.
 func (m *Menu) Run(ctx context.Context, opt ...server.Option) error {
-	logger.SetDefaultStructuredLogger("momd", version)
-	slog.Info("starting momd", "commit", commit, "date", date)
+	logger.SetDefaultLogger(name, version)
+	slog.Info("starting", "name", name, "commit", commit, "date", date)
 
 	if opt == nil {
 		opt = []server.Option{}

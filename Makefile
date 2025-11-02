@@ -11,7 +11,7 @@ GO_ENV := \
 	GO111MODULE=$(GO111MODULE) \
 	CGO_ENABLED=$(CGO_ENABLED)
 
-.PHONY: all build lint clean test help tidy upgrade tag pre bench vet fmt run
+.PHONY: all build lint clean test help tidy upgrade tag pre bench vet fmt server app run
 
 all: help
 
@@ -19,10 +19,6 @@ pre: tidy lint test vet ## Run all quality checks
 
 build: ## Build the Go binary locally
 	$(GO_ENV) go build -v -o bin/$(APP_NAME) cmd/momd/main.go
-
-clean: ## Clean the build artifacts
-	$(GO_ENV) go clean -x; \
-	rm -f bin/$(APP_NAME)
 
 fmt: ## Format Go code
 	@echo "Formatting code..."
@@ -48,7 +44,7 @@ lint: ## Lint the Go code and YAML files
 		echo "yamllint not installed, skipping YAML linting"; \
 	fi
 
-run: ## Run the application
+server: ## Run the Go server
 	$(GO_ENV) go run cmd/momd/main.go
 
 test: ## Run Go tests and generate coverage report
@@ -62,6 +58,35 @@ vet: ## Vet the Go code
 tag: ## Creates a release tag
 	git tag -s -m "version bump to $(APP_VERSION)" $(APP_VERSION); \
 	git push origin $(APP_VERSION)
+
+app: build ## Build the macOS menu bar app
+	@echo "Building macOS app..."
+	@mkdir -p macos/build/momd.app/Contents/MacOS
+	@mkdir -p macos/build/momd.app/Contents/Resources
+	
+	# Compile Swift code
+	swiftc -o macos/build/momd.app/Contents/MacOS/momd \
+		-framework Cocoa \
+		-framework Foundation \
+		macos/momd/main.swift \
+		macos/momd/AppDelegate.swift
+	
+	# Copy Info.plist
+	cp macos/momd/Info.plist macos/build/momd.app/Contents/Info.plist
+	
+	# Copy the Go binary to Resources
+	cp bin/momd macos/build/momd.app/Contents/Resources/momd
+	
+	@echo "macOS app built at: macos/build/momd.app"
+	@echo "To run: open macos/build/momd.app"
+
+clean: ## Clean the macOS and Go artifacts
+	$(GO_ENV) go clean -x; \
+	rm -f bin/$(APP_NAME); \
+	rm -rf macos/build
+
+run: app ## Build and run the macOS app
+	open macos/build/momd.app
 
 help: ## Displays available commands
 	@echo "Available make targets:"; \
