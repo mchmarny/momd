@@ -86,7 +86,8 @@ clean: ## Clean the macOS and Go artifacts
 	rm -rf macos/build
 
 run: app ## Build and run the macOS app
-	open macos/build/momd.app
+	@killall momd 2>/dev/null || true
+	@open macos/build/momd.app
 
 help: ## Displays available commands
 	@echo "Available make targets:"; \

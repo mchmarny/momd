@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -526,14 +525,4 @@ func TestIsRunning(t *testing.T) {
 			t.Error("expected IsRunning() to return false after server stops")
 		}
 	})
-}
-
-// Helper function to check if a string contains any of the given substrings.
-func containsAny(s string, substrings []string) bool {
-	for _, substr := range substrings {
-		if strings.Contains(s, substr) {
-			return true
-		}
-	}
-	return false
 }

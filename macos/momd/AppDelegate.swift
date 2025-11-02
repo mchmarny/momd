@@ -168,6 +168,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func addMenuItem(_ item: MenuItem, to menu: NSMenu) {
         let menuItem = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
         
+        // Set tooltip from description if available
+        if let description = item.description {
+            menuItem.toolTip = description
+        }
+        
         // If item has children, create submenu
         if let children = item.items, !children.isEmpty {
             let submenu = NSMenu(title: item.title)
@@ -236,8 +241,14 @@ struct MenuData: Codable {
 }
 
 struct MenuItem: Codable {
+    let type: String
     let path: String?
     let title: String
     let description: String?
     let items: [MenuItem]?
+}
+
+struct MenuItemAction {
+    let type: String
+    let path: String
 }

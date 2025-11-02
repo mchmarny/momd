@@ -42,26 +42,30 @@ func makeMenu() *menu.Menu {
 		Version:     version,
 		Items: []menu.Item{
 			{
-				Title:       "Item 1",
+				Title:       "Item 1 (callback)",
 				Description: "This is item 1",
+				Type:        menu.ItemTypeCallback,
 				Path:        "/item1",
 				Handler:     simple(),
 			},
 			{
-				Title:       "Item 2",
+				Title:       "Item 2 (link)",
 				Description: "This is item 2",
+				Type:        menu.ItemTypeLink,
 				Path:        "/item2",
 				Handler:     simple(),
 				Items: []menu.Item{
 					{
 						Title:       "Subitem 1",
 						Description: "This is subitem 1",
+						Type:        menu.ItemTypeCallback,
 						Path:        "/item2/subitem1",
 						Handler:     simple(),
 					},
 					{
 						Title:       "Subitem 2",
 						Description: "This is subitem 2",
+						Type:        menu.ItemTypeCallback,
 						Path:        "/item2/subitem2",
 						Handler:     simple(),
 					},

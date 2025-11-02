@@ -6,6 +6,17 @@ import (
 	"net/http"
 )
 
+const (
+	// ItemTypeButton calls back to the server.
+	ItemTypeCallback ItemType = "callback"
+	// ItemTypeLink opens a link using default handler.
+	ItemTypeLink ItemType = "link"
+)
+
+// ItemType represents the type of a menu item.
+// Dictates what happens on user click.
+type ItemType string
+
 // Menu represents the root menu structure.
 type Menu struct {
 	// Title is the menu
@@ -18,6 +29,28 @@ type Menu struct {
 	Version string `json:"version,omitempty"`
 
 	// Items is the list of menu items
+	Items []Item `json:"items,omitempty"`
+}
+
+// Item represents an individual item in the menu, which may contain sub-items.
+type Item struct {
+	// Type indicates the type of the menu item (e.g., callback, link).
+	Type ItemType `json:"type"`
+
+	// Path is the unique identifier for the menu item within the scope of its parent.
+	Path string `json:"path"`
+
+	// Handler is the HTTP handler associated with this menu item.
+	// This field is not serialized to JSON.
+	Handler http.Handler `json:"-"`
+
+	// Title is the title of the menu item.
+	Title string `json:"title"`
+
+	// Description is an optional description of the menu item.
+	Description string `json:"description,omitempty"`
+
+	// Items are the sub-items of this menu item.
 	Items []Item `json:"items,omitempty"`
 }
 
